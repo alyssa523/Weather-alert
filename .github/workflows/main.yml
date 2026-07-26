@@ -1,0 +1,37 @@
+name: Weather Alert Bot
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {}  # lets you trigger a run manually from the Actions tab
+
+permissions:
+  contents: write  # needed so the workflow can commit the updated state file
+
+jobs:
+  check-weather:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run weather alert bot
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python weather_alert_bot.py
+
+      - name: Persist alert state
+        run: |
+          git config user.name "weather-alert-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add weather_alert_state.json
+          git diff --staged --quiet || git commit -m "Update weather alert state"
+          git push
